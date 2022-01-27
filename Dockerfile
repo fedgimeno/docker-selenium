@@ -175,7 +175,7 @@ RUN echo "${UBUNTU_FLAVOR}" > UBUNTU_FLAVOR \
 ARG SEL_DIRECTORY="3.14"
 ENV SEL_VER="3.141.59"
 
-RUN wget -nv "https://github.com/dosel/selenium/releases/download/selenium-3.141.59-patch-d47e74d6f2/selenium.jar" \
+RUN wget -nv "https://github.com/dosel/selenium/releases/download/selenium-3.141.59-patch-d47e74d6f2/selenium.jar" --no-check-certificate\
   && ln -s "selenium.jar" \
            "selenium-server-standalone-${SEL_VER}.jar" \
   && ln -s "selenium.jar" \
@@ -256,11 +256,16 @@ RUN cd /usr/local/bin \
 # 2017-10-21 commit: 3f04badc3237f0, supervisor/version.txt: 4.0.0.dev0
 # 2017-05-30 commit: 946d9cf3be4db3, supervisor/version.txt: 4.0.0.dev0
 ENV RUN_DIR="/var/run/sele"
-RUN SHA="837c159ae51f3bf12c1d30a8cb44f3450611983c" \
-  && pip install --no-cache \
-      "https://github.com/Supervisor/supervisor/zipball/${SHA}" || \
-     pip install --no-cache \
-      "https://github.com/Supervisor/supervisor/zipball/${SHA}" \
+
+#RUN SHA="837c159ae51f3bf12c1d30a8cb44f3450611983c" \
+#  && pip install --no-cache \
+#      "https://github.com/Supervisor/supervisor/zipball/${SHA}" --global http.sslVerify false || \
+#     pip install --no-cache --global http.sslVerify false\
+#      "https://github.com/Supervisor/supervisor/zipball/${SHA}" --global http.sslVerify false \
+#  && rm -rf /var/lib/apt/lists/* \
+#  && apt -qyy clean
+
+RUN pip install --no-cache supervisor \
   && rm -rf /var/lib/apt/lists/* \
   && apt -qyy clean
 
@@ -348,12 +353,12 @@ USER seluser
 ENV NOVNC_SHA="9223e8f2d1c207fb74cb4b8cc243e59d84f9e2f6" \
     WEBSOCKIFY_SHA="cb1508fa495bea4b333173705772c1997559ae4b"
 RUN  wget -nv -O noVNC.zip \
-       "https://github.com/elgalu/noVNC/archive/${NOVNC_SHA}.zip" \
+       "https://github.com/elgalu/noVNC/archive/${NOVNC_SHA}.zip" --no-check-certificate \
   && unzip -x noVNC.zip \
   && mv noVNC-${NOVNC_SHA} noVNC \
   && rm noVNC.zip \
   && wget -nv -O websockify.zip \
-      "https://github.com/kanaka/websockify/archive/${WEBSOCKIFY_SHA}.zip" \
+      "https://github.com/kanaka/websockify/archive/${WEBSOCKIFY_SHA}.zip" --no-check-certificate \
   && unzip -x websockify.zip \
   && rm websockify.zip \
   && mv websockify-${WEBSOCKIFY_SHA} ./noVNC/utils/websockify
@@ -434,7 +439,7 @@ ARG FF_VER="88.0.1"
 ENV FF_COMP="firefox-${FF_VER}.tar.bz2"
 ENV FF_URL="${FF_BASE_URL}/${FF_INNER_PATH}/${FF_VER}/${FF_PLATFORM}/${FF_LANG}/${FF_COMP}"
 RUN cd /opt \
-  && wget -nv "${FF_URL}" -O "firefox.tar.bz2" \
+  && wget -nv "${FF_URL}" -O "firefox.tar.bz2" --no-check-certificate \
   && bzip2 -d "firefox.tar.bz2" \
   && tar xf "firefox.tar" \
   && rm "firefox.tar" \
@@ -450,7 +455,7 @@ LABEL selenium_firefox_version "${FF_VER}"
 ARG GECKOD_VER="0.29.1"
 ENV GECKOD_URL="https://github.com/mozilla/geckodriver/releases/download"
 RUN wget --no-verbose -O geckodriver.tar.gz \
-     "${GECKOD_URL}/v${GECKOD_VER}/geckodriver-v${GECKOD_VER}-linux64.tar.gz" \
+     "${GECKOD_URL}/v${GECKOD_VER}/geckodriver-v${GECKOD_VER}-linux64.tar.gz" --no-check-certificate \
   && rm -rf /opt/geckodriver* \
   && tar -C /opt -xvzf geckodriver.tar.gz \
   && chmod +x /opt/geckodriver \
@@ -466,7 +471,7 @@ COPY bin/fail /usr/bin/
 #===============
 # TODO: Use Google fingerprint to verify downloads
 #  https://www.google.de/linuxrepositories/
-ARG EXPECTED_CHROME_VERSION="91.0.4472.77"
+ARG EXPECTED_CHROME_VERSION="97.0.4692.99"
 ENV CHROME_URL="https://dl.google.com/linux/direct" \
     CHROME_BASE_DEB_PATH="/home/seluser/chrome-deb/google-chrome" \
     GREP_ONLY_NUMS_VER="[0-9.]{2,20}"
@@ -476,7 +481,7 @@ LABEL selenium_chrome_version "${EXPECTED_CHROME_VERSION}"
 RUN apt -qqy update \
   && mkdir -p chrome-deb \
   && wget -nv "${CHROME_URL}/google-chrome-stable_current_amd64.deb" \
-          -O "./chrome-deb/google-chrome-stable_current_amd64.deb" \
+          -O "./chrome-deb/google-chrome-stable_current_amd64.deb" --no-check-certificate \
   && apt -qyy --no-install-recommends install \
         "${CHROME_BASE_DEB_PATH}-stable_current_amd64.deb" \
   && rm "${CHROME_BASE_DEB_PATH}-stable_current_amd64.deb" \
@@ -508,13 +513,13 @@ USER seluser
 # Chrome webdriver
 #==================
 # How to get cpu arch dynamically: $(lscpu | grep Architecture | sed "s/^.*_//")
-ARG CHROME_DRIVER_VERSION="91.0.4472.19"
+ARG CHROME_DRIVER_VERSION="97.0.4692.71"
 ENV CHROME_DRIVER_BASE="chromedriver.storage.googleapis.com" \
     CPU_ARCH="64"
 ENV CHROME_DRIVER_FILE="chromedriver_linux${CPU_ARCH}.zip"
 ENV CHROME_DRIVER_URL="https://${CHROME_DRIVER_BASE}/${CHROME_DRIVER_VERSION}/${CHROME_DRIVER_FILE}"
 # Gets latest chrome driver version. Or you can hard-code it, e.g. 2.15
-RUN  wget -nv -O chromedriver_linux${CPU_ARCH}.zip ${CHROME_DRIVER_URL} \
+RUN  wget -nv -O chromedriver_linux${CPU_ARCH}.zip ${CHROME_DRIVER_URL} --no-check-certificate \
   && unzip chromedriver_linux${CPU_ARCH}.zip \
   && rm chromedriver_linux${CPU_ARCH}.zip \
   && mv chromedriver \
@@ -859,7 +864,7 @@ ENV BROWSERMOBPROXY_VER=2.1.4
 ENV BROWSERMOBPROXY_FOLDER=browsermob-proxy-${BROWSERMOBPROXY_VER}
 
 RUN  wget -nv -O browsermob-proxy.zip \
-       "https://github.com/lightbody/browsermob-proxy/releases/download/browsermob-proxy-${BROWSERMOBPROXY_VER}/browsermob-proxy-${BROWSERMOBPROXY_VER}-bin.zip" \
+       "https://github.com/lightbody/browsermob-proxy/releases/download/browsermob-proxy-${BROWSERMOBPROXY_VER}/browsermob-proxy-${BROWSERMOBPROXY_VER}-bin.zip" --no-check-certificate \
   && unzip -x browsermob-proxy.zip \
   && rm browsermob-proxy.zip \
   && mv ${BROWSERMOBPROXY_FOLDER}/lib/browsermob-dist-${BROWSERMOBPROXY_VER}.jar ${LIB_UTILS}/ \
